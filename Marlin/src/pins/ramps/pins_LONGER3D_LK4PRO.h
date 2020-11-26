@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- *
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
- * Copyright (c) 2016 Bob Cousins bobcousins42@googlemail.com
- * Copyright (c) 2017 Victor Perez
+ *
+ * Based on Sprinter and grbl.
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,18 @@
  */
 #pragma once
 
-#ifdef STM32F4
-  #include "STM32F4/timers.h"
-#else
-  #include "STM32F7/timers.h"
+// Longer UI assumptions
+#if HOTENDS > 1 || E_STEPPERS > 1
+  #error "Longer UI supports only 1 hotend / E-stepper."
 #endif
+
+#define BOARD_INFO_NAME "LGT Kit 1.0"
+
+#define SD_DETECT_PIN                         49
+#define FIL_RUNOUT_PIN                         2
+#define Z_MIN_PIN                             35
+
+//
+// Import RAMPS 1.4 pins
+//
+#include "pins_RAMPS.h"

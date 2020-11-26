@@ -19,20 +19,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
-#include "../inc/MarlinConfig.h"
+/**
+ * MKS Robin E3 v1.1 (STM32F103RCT6) board pin assignments
+ */
 
-#if ENABLED(MK2_MULTIPLEXER)
+#if HOTENDS > 1 || E_STEPPERS > 1
+  #error "MKS Robin E3 v1.1 only supports one hotend / E-stepper. Comment out this line to continue."
+#endif
 
-#include "../module/stepper.h"
+#ifndef BOARD_INFO_NAME
+  #define BOARD_INFO_NAME "MKS Robin E3 V1.1"
+#endif
 
-void select_multiplexed_stepper(const uint8_t e) {
-  planner.synchronize();
-  disable_e_steppers();
-  WRITE(E_MUX0_PIN, TEST(e, 0) ? HIGH : LOW);
-  WRITE(E_MUX1_PIN, TEST(e, 1) ? HIGH : LOW);
-  WRITE(E_MUX2_PIN, TEST(e, 2) ? HIGH : LOW);
-  safe_delay(100);
-}
-
-#endif // MK2_MULTIPLEXER
+#include "pins_MKS_ROBIN_E3_V1_1_common.h"

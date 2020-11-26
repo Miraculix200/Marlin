@@ -30,6 +30,10 @@
   #include "../feature/host_actions.h"
 #endif
 
+#if ENABLED(BROWSE_MEDIA_ON_INSERT, PASSWORD_ON_SD_PRINT_MENU)
+  #include "../feature/password/password.h"
+#endif
+
 // All displays share the MarlinUI class
 #include "marlinui.h"
 MarlinUI ui;
@@ -158,7 +162,7 @@ constexpr uint8_t epps = ENCODER_PULSES_PER_STEP;
   #if HAS_SLOW_BUTTONS
     volatile uint8_t MarlinUI::slow_buttons;
   #endif
-  #if HAS_TOUCH_XPT2046
+  #if HAS_TOUCH_BUTTONS
     #include "touch/touch_buttons.h"
     bool MarlinUI::on_edit_screen = false;
   #endif
@@ -241,7 +245,7 @@ millis_t MarlinUI::next_button_update_ms; // = 0
     int8_t MarlinUI::encoderDirection = ENCODERBASE;
   #endif
 
-  #if HAS_TOUCH_XPT2046
+  #if HAS_TOUCH_BUTTONS
     uint8_t MarlinUI::touch_buttons;
     uint8_t MarlinUI::repeat_delay;
   #endif
@@ -862,7 +866,7 @@ void MarlinUI::update() {
       quick_feedback();                               //  - Always make a click sound
     };
 
-    #if HAS_TOUCH_XPT2046
+    #if HAS_TOUCH_BUTTONS
       if (touch_buttons) {
         RESET_STATUS_TIMEOUT();
         if (touch_buttons & (EN_A | EN_B)) {              // Menu arrows, in priority
@@ -883,7 +887,7 @@ void MarlinUI::update() {
       }
       else // keep wait_for_unclick value
 
-    #endif // HAS_TOUCH_XPT2046
+    #endif // HAS_TOUCH_BUTTONS
 
       {
         // Integrated LCD click handling via button_pressed
@@ -905,7 +909,7 @@ void MarlinUI::update() {
 
     next_lcd_update_ms = ms + LCD_UPDATE_INTERVAL;
 
-    #if HAS_TOUCH_XPT2046
+    #if HAS_TOUCH_BUTTONS
 
       if (on_status_screen()) next_lcd_update_ms += (LCD_UPDATE_INTERVAL) * 2;
 
@@ -1250,7 +1254,7 @@ void MarlinUI::update() {
           #if HAS_SLOW_BUTTONS
             | slow_buttons
           #endif
-          #if BOTH(HAS_TOUCH_XPT2046, HAS_ENCODER_ACTION)
+          #if BOTH(HAS_TOUCH_BUTTONS, HAS_ENCODER_ACTION)
             | (touch_buttons & TERN(HAS_ENCODER_WHEEL, ~(EN_A | EN_B), 0xFF))
           #endif
         );
@@ -1328,58 +1332,15 @@ void MarlinUI::update() {
 
 #endif // HAS_WIRED_LCD
 
-#if HAS_DISPLAY
+#if HAS_STATUS_MESSAGE
+
+  ////////////////////////////////////////////
+  ////////////// Status Message //////////////
+  ////////////////////////////////////////////
 
   #if ENABLED(EXTENSIBLE_UI)
     #include "extui/ui_api.h"
   #endif
-
-  ////////////////////////////////////////////
-  /////////////// Status Line ////////////////
-  ////////////////////////////////////////////
-
-  #if ENABLED(STATUS_MESSAGE_SCROLLING)
-    void MarlinUI::advance_status_scroll() {
-      // Advance by one UTF8 code-word
-      if (status_scroll_offset < utf8_strlen(status_message))
-        while (!START_OF_UTF8_CHAR(status_message[++status_scroll_offset]));
-      else
-        status_scroll_offset = 0;
-    }
-    char* MarlinUI::status_and_len(uint8_t &len) {
-      char *out = status_message + status_scroll_offset;
-      len = utf8_strlen(out);
-      return out;
-    }
-  #endif
-
-  void MarlinUI::finish_status(const bool persist) {
-
-    #if !(ENABLED(LCD_PROGRESS_BAR) && (PROGRESS_MSG_EXPIRE) > 0)
-      UNUSED(persist);
-    #endif
-
-    #if ENABLED(LCD_PROGRESS_BAR) || BOTH(FILAMENT_LCD_DISPLAY, SDSUPPORT)
-      const millis_t ms = millis();
-    #endif
-
-    #if ENABLED(LCD_PROGRESS_BAR) && !IS_TFTGLCD_PANEL
-      progress_bar_ms = ms;
-      #if PROGRESS_MSG_EXPIRE > 0
-        expire_status_ms = persist ? 0 : ms + PROGRESS_MSG_EXPIRE;
-      #endif
-    #endif
-
-    #if BOTH(FILAMENT_LCD_DISPLAY, SDSUPPORT)
-      next_filament_display = ms + 5000UL; // Show status message for 5s
-    #endif
-
-    #if BOTH(HAS_WIRED_LCD, STATUS_MESSAGE_SCROLLING)
-      status_scroll_offset = 0;
-    #endif
-
-    TERN_(EXTENSIBLE_UI, ExtUI::onStatusChanged(status_message));
-  }
 
   bool MarlinUI::has_status() { return (status_message[0] != '\0'); }
 
@@ -1410,16 +1371,45 @@ void MarlinUI::update() {
     finish_status(persist);
   }
 
-  #include <stdarg.h>
+  /**
+   * Reset the status message
+   */
+  void MarlinUI::reset_status(const bool no_welcome) {
+    #if SERVICE_INTERVAL_1 > 0
+      static PGMSTR(service1, "> " SERVICE_NAME_1 "!");
+    #endif
+    #if SERVICE_INTERVAL_2 > 0
+      static PGMSTR(service2, "> " SERVICE_NAME_2 "!");
+    #endif
+    #if SERVICE_INTERVAL_3 > 0
+      static PGMSTR(service3, "> " SERVICE_NAME_3 "!");
+    #endif
+    PGM_P msg;
+    if (printingIsPaused())
+      msg = GET_TEXT(MSG_PRINT_PAUSED);
+    #if ENABLED(SDSUPPORT)
+      else if (IS_SD_PRINTING())
+        return set_status(card.longest_filename(), true);
+    #endif
+    else if (print_job_timer.isRunning())
+      msg = GET_TEXT(MSG_PRINTING);
 
-  void MarlinUI::status_printf_P(const uint8_t level, PGM_P const fmt, ...) {
-    if (level < alert_level) return;
-    alert_level = level;
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf_P(status_message, MAX_MESSAGE_LENGTH, fmt, args);
-    va_end(args);
-    finish_status(level > 0);
+    #if SERVICE_INTERVAL_1 > 0
+      else if (print_job_timer.needsService(1)) msg = service1;
+    #endif
+    #if SERVICE_INTERVAL_2 > 0
+      else if (print_job_timer.needsService(2)) msg = service2;
+    #endif
+    #if SERVICE_INTERVAL_3 > 0
+      else if (print_job_timer.needsService(3)) msg = service3;
+    #endif
+
+    else if (!no_welcome)
+      msg = GET_TEXT(WELCOME_MSG);
+    else
+      return;
+
+    set_status_P(msg, -1);
   }
 
   void MarlinUI::set_status_P(PGM_P const message, int8_t level) {
@@ -1455,50 +1445,75 @@ void MarlinUI::update() {
     TERN_(HAS_LCD_MENU, return_to_status());
   }
 
-  PGM_P print_paused = GET_TEXT(MSG_PRINT_PAUSED);
+  #include <stdarg.h>
 
-  /**
-   * Reset the status message
-   */
-  void MarlinUI::reset_status(const bool no_welcome) {
-    PGM_P printing = GET_TEXT(MSG_PRINTING);
-    PGM_P welcome  = GET_TEXT(WELCOME_MSG);
-    #if SERVICE_INTERVAL_1 > 0
-      static PGMSTR(service1, "> " SERVICE_NAME_1 "!");
-    #endif
-    #if SERVICE_INTERVAL_2 > 0
-      static PGMSTR(service2, "> " SERVICE_NAME_2 "!");
-    #endif
-    #if SERVICE_INTERVAL_3 > 0
-      static PGMSTR(service3, "> " SERVICE_NAME_3 "!");
-    #endif
-    PGM_P msg;
-    if (printingIsPaused())
-      msg = print_paused;
-    #if ENABLED(SDSUPPORT)
-      else if (IS_SD_PRINTING())
-        return set_status(card.longest_filename(), true);
-    #endif
-    else if (print_job_timer.isRunning())
-      msg = printing;
-
-    #if SERVICE_INTERVAL_1 > 0
-      else if (print_job_timer.needsService(1)) msg = service1;
-    #endif
-    #if SERVICE_INTERVAL_2 > 0
-      else if (print_job_timer.needsService(2)) msg = service2;
-    #endif
-    #if SERVICE_INTERVAL_3 > 0
-      else if (print_job_timer.needsService(3)) msg = service3;
-    #endif
-
-    else if (!no_welcome)
-      msg = welcome;
-    else
-      return;
-
-    set_status_P(msg, -1);
+  void MarlinUI::status_printf_P(const uint8_t level, PGM_P const fmt, ...) {
+    if (level < alert_level) return;
+    alert_level = level;
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf_P(status_message, MAX_MESSAGE_LENGTH, fmt, args);
+    va_end(args);
+    finish_status(level > 0);
   }
+
+  void MarlinUI::finish_status(const bool persist) {
+
+    #if HAS_SPI_LCD
+
+      #if !(ENABLED(LCD_PROGRESS_BAR) && (PROGRESS_MSG_EXPIRE) > 0)
+        UNUSED(persist);
+      #endif
+
+      #if ENABLED(LCD_PROGRESS_BAR) || BOTH(FILAMENT_LCD_DISPLAY, SDSUPPORT)
+        const millis_t ms = millis();
+      #endif
+
+      #if ENABLED(LCD_PROGRESS_BAR)
+        progress_bar_ms = ms;
+        #if PROGRESS_MSG_EXPIRE > 0
+          expire_status_ms = persist ? 0 : ms + PROGRESS_MSG_EXPIRE;
+        #endif
+      #endif
+
+      #if BOTH(FILAMENT_LCD_DISPLAY, SDSUPPORT)
+        next_filament_display = ms + 5000UL; // Show status message for 5s
+      #endif
+
+      #if ENABLED(STATUS_MESSAGE_SCROLLING)
+        status_scroll_offset = 0;
+      #endif
+
+    #endif
+
+    TERN_(EXTENSIBLE_UI, ExtUI::onStatusChanged(status_message));
+  }
+
+  #if ENABLED(STATUS_MESSAGE_SCROLLING)
+
+    void MarlinUI::advance_status_scroll() {
+      // Advance by one UTF8 code-word
+      if (status_scroll_offset < utf8_strlen(status_message))
+        while (!START_OF_UTF8_CHAR(status_message[++status_scroll_offset]));
+      else
+        status_scroll_offset = 0;
+    }
+
+    char* MarlinUI::status_and_len(uint8_t &len) {
+      char *out = status_message + status_scroll_offset;
+      len = utf8_strlen(out);
+      return out;
+    }
+
+  #endif
+
+#endif
+
+#if HAS_DISPLAY
+
+  #if ENABLED(SDSUPPORT)
+    extern bool wait_for_user, wait_for_heatup;
+  #endif
 
   void MarlinUI::abort_print() {
     #if ENABLED(SDSUPPORT)
@@ -1510,7 +1525,7 @@ void MarlinUI::update() {
     #endif
     TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("UI Aborted"), DISMISS_STR));
     print_job_timer.stop();
-    set_status_P(GET_TEXT(MSG_PRINT_ABORTED));
+    LCD_MESSAGEPGM(MSG_PRINT_ABORTED);
     TERN_(HAS_LCD_MENU, return_to_status());
   }
 
@@ -1526,7 +1541,7 @@ void MarlinUI::update() {
 
     TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_PAUSE_RESUME, PSTR("UI Pause"), PSTR("Resume")));
 
-    set_status_P(print_paused);
+    LCD_MESSAGEPGM(MSG_PRINT_PAUSED);
 
     #if ENABLED(PARK_HEAD_ON_PAUSE)
       TERN_(HAS_WIRED_LCD, lcd_pause_show_message(PAUSE_MESSAGE_PARKING, PAUSE_MODE_PAUSE_PRINT)); // Show message immediately to let user know about pause in progress
@@ -1561,7 +1576,7 @@ void MarlinUI::update() {
 
   #endif
 
-  #if HAS_TOUCH_XPT2046
+  #if HAS_TOUCH_BUTTONS
 
     //
     // Screen Click
@@ -1611,6 +1626,10 @@ void MarlinUI::update() {
 
 #if ENABLED(SDSUPPORT)
 
+  #if ENABLED(EXTENSIBLE_UI)
+    #include "extui/ui_api.h"
+  #endif
+
   void MarlinUI::media_changed(const uint8_t old_status, const uint8_t status) {
     if (old_status == status) {
       TERN_(EXTENSIBLE_UI, ExtUI::onMediaError()); // Failed to mount/unmount
@@ -1620,14 +1639,20 @@ void MarlinUI::update() {
     if (status) {
       if (old_status < 2) {
         TERN_(EXTENSIBLE_UI, ExtUI::onMediaInserted()); // ExtUI response
-        set_status_P(GET_TEXT(MSG_MEDIA_INSERTED));
+        #if ENABLED(BROWSE_MEDIA_ON_INSERT)
+          clear_menu_history();
+          quick_feedback();
+          goto_screen(MEDIA_MENU_GATEWAY);
+        #else
+          LCD_MESSAGEPGM(MSG_MEDIA_INSERTED);
+        #endif
       }
     }
     else {
       if (old_status < 2) {
         TERN_(EXTENSIBLE_UI, ExtUI::onMediaRemoved()); // ExtUI response
         #if PIN_EXISTS(SD_DETECT)
-          set_status_P(GET_TEXT(MSG_MEDIA_REMOVED));
+          LCD_MESSAGEPGM(MSG_MEDIA_REMOVED);
           #if HAS_LCD_MENU
             if (!defer_return_to_status) return_to_status();
           #endif
