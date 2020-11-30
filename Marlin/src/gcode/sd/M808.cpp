@@ -20,43 +20,32 @@
  *
  */
 
-//
-// Power Monitor Menu
-//
+#include "../../inc/MarlinConfig.h"
 
-#include "../../inc/MarlinConfigPre.h"
+#if ENABLED(GCODE_REPEAT_MARKERS)
 
-#if HAS_LCD_MENU && HAS_POWER_MONITOR
+#include "../gcode.h"
+#include "../../feature/repeat.h"
 
-#include "menu_item.h"
-#include "../../feature/power_monitor.h"
+/**
+ * M808: Set / Goto a repeat marker
+ *
+ *  L<count> - Set a repeat marker with 'count' repetitions. If omitted, infinity.
+ *
+ * Examples:
+ *
+ *    M808 L   ; Set a loop marker with a count of infinity
+ *    M808 L2  ; Set a loop marker with a count of 2
+ *    M808     ; Decrement and loop if not zero.
+ */
+void GcodeSuite::M808() {
 
-void menu_power_monitor() {
-  START_MENU();
-  BACK_ITEM(MSG_MAIN);
+  // Handled early and ignored here in the queue.
+  // Allowed to go into the queue for logging purposes.
 
-  #if ENABLED(POWER_MONITOR_CURRENT)
-  {
-    bool ena = power_monitor.current_display_enabled();
-    EDIT_ITEM(bool, MSG_CURRENT, &ena, power_monitor.toggle_current_display);
-  }
-  #endif
+  // M808 K sent from the host to cancel all loops
+  if (parser.seen('K')) repeat.cancel();
 
-  #if HAS_POWER_MONITOR_VREF
-  {
-    bool ena = power_monitor.voltage_display_enabled();
-    EDIT_ITEM(bool, MSG_VOLTAGE, &ena, power_monitor.toggle_voltage_display);
-  }
-  #endif
-
-  #if HAS_POWER_MONITOR_WATTS
-  {
-    bool ena = power_monitor.power_display_enabled();
-    EDIT_ITEM(bool, MSG_POWER, &ena, power_monitor.toggle_power_display);
-  }
-  #endif
-
-  END_MENU();
 }
 
-#endif // HAS_LCD_MENU && HAS_POWER_MONITOR
+#endif // GCODE_REPEAT_MARKERS

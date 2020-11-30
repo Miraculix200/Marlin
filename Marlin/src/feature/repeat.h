@@ -19,44 +19,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
-//
-// Power Monitor Menu
-//
+#include "../inc/MarlinConfigPre.h"
+#include "../gcode/parser.h"
 
-#include "../../inc/MarlinConfigPre.h"
+#include <stdint.h>
 
-#if HAS_LCD_MENU && HAS_POWER_MONITOR
+#define MAX_REPEAT_NESTING 10
 
-#include "menu_item.h"
-#include "../../feature/power_monitor.h"
+typedef struct {
+  uint32_t sdpos;   // The repeat file position
+  int16_t counter;  // The counter for looping
+} repeat_marker_t;
 
-void menu_power_monitor() {
-  START_MENU();
-  BACK_ITEM(MSG_MAIN);
+class Repeat {
+private:
+  static repeat_marker_t marker[MAX_REPEAT_NESTING];
+  static uint8_t index;
+public:
+  static inline void reset() { index = 0; }
+  static bool is_command_M808(char * const cmd) { return cmd[0] == 'M' && cmd[1] == '8' && cmd[2] == '0' && cmd[3] == '8' && !NUMERIC(cmd[4]); }
+  static void early_parse_M808(char * const cmd);
+  static void add_marker(const uint32_t sdpos, const uint16_t count);
+  static void loop();
+  static void cancel();
+};
 
-  #if ENABLED(POWER_MONITOR_CURRENT)
-  {
-    bool ena = power_monitor.current_display_enabled();
-    EDIT_ITEM(bool, MSG_CURRENT, &ena, power_monitor.toggle_current_display);
-  }
-  #endif
-
-  #if HAS_POWER_MONITOR_VREF
-  {
-    bool ena = power_monitor.voltage_display_enabled();
-    EDIT_ITEM(bool, MSG_VOLTAGE, &ena, power_monitor.toggle_voltage_display);
-  }
-  #endif
-
-  #if HAS_POWER_MONITOR_WATTS
-  {
-    bool ena = power_monitor.power_display_enabled();
-    EDIT_ITEM(bool, MSG_POWER, &ena, power_monitor.toggle_power_display);
-  }
-  #endif
-
-  END_MENU();
-}
-
-#endif // HAS_LCD_MENU && HAS_POWER_MONITOR
+extern Repeat repeat;
