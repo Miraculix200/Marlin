@@ -67,7 +67,7 @@
 #define X_STOP_PIN                          PA15
 #define Y_STOP_PIN                          PA12
 #define Z_MIN_PIN                           PA11
-//#define Z_MAX_PIN                           PC4
+#define Z_MAX_PIN                           PC4
 
 //
 // Steppers
@@ -87,16 +87,16 @@
 #define E0_ENABLE_PIN                       PB3
 #define E0_STEP_PIN                         PD6
 #define E0_DIR_PIN                          PD3
-/* 
+
 #define E1_ENABLE_PIN                       PA3
 #define E1_STEP_PIN                         PA6
 #define E1_DIR_PIN                          PA1
- */
+
 //
 // Temperature Sensors
 //
 #define TEMP_0_PIN                          PC1   // TH1
-//#define TEMP_1_PIN                          PC2   // TH2
+#define TEMP_1_PIN                          PC2   // TH2
 #define TEMP_BED_PIN                        PC0   // TB1
 
 //
@@ -109,10 +109,10 @@
   #ifndef FAN1_PIN
     #define FAN1_PIN                        PB0
   #endif
-/* #else
+#else
   #ifndef HEATER_1_PIN
     #define HEATER_1_PIN                    PB0
-  #endif */
+  #endif
 #endif
 #ifndef FAN_PIN
   #define FAN_PIN                           PB1   // FAN
@@ -163,7 +163,7 @@
 #endif
 
 #define SDIO_SUPPORT
-#define SDIO_CLOCK                       8000000  // 4.5 MHz
+#define SDIO_CLOCK                       4500000  // 4.5 MHz
 #define SD_DETECT_PIN                       PD12
 #define ONBOARD_SD_CS_PIN                   PC11
 
@@ -172,27 +172,6 @@
 //
 #define BEEPER_PIN                          PC5
 
-// UART
-#if HAS_TMC_UART
-
-    #define X_SERIAL_TX_PIN                   PE5 // TC-MAX31855  CS pin 
-    #define X_SERIAL_RX_PIN                   X_SERIAL_TX_PIN
-
-    #define Y_SERIAL_TX_PIN                   X_SERIAL_TX_PIN
-    #define Y_SERIAL_RX_PIN                   X_SERIAL_TX_PIN
-
-    #define Z_SERIAL_TX_PIN                   X_SERIAL_TX_PIN
-    #define Z_SERIAL_RX_PIN                   X_SERIAL_TX_PIN
-
-    #define E0_SERIAL_TX_PIN                  PA5 // wifi PA5 pin
-    #define E0_SERIAL_RX_PIN                  E0_SERIAL_TX_PIN
-
-  // Reduce baud rate for software serial reliability
-  //#if HAS_TMC_SW_SERIAL
-  #define TMC_BAUD_RATE 19200
-  //#endif
-
-#endif
 /**
  * Note: MKS Robin TFT screens use various TFT controllers.
  * If the screen stays white, disable 'TFT_RESET_PIN'
