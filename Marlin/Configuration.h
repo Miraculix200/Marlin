@@ -492,11 +492,16 @@
     #define DEFAULT_Ki_LIST {   1.08,   1.08 }
     #define DEFAULT_Kd_LIST { 114.00, 114.00 }
   #else
-    #define DEFAULT_Kp 7.65
-    #define DEFAULT_Ki 0.37
-    #define DEFAULT_Kd 39.40
-  #endif
+// M303 E0 S235 C8
+    #define DEFAULT_Kp 19.56
+    #define DEFAULT_Ki 2.26
+    #define DEFAULT_Kd 42.33
+#endif
 #endif // PIDTEMP
+
+//old: Kp: 7.65 Ki: 0.37 Kd: 39.40
+//M301 P19.56 I2.26 D42.33
+//m500
 
 //===========================================================================
 //====================== PID > Bed Temperature Control ======================
@@ -2624,8 +2629,8 @@
 // If the servo can't reach the requested position, increase it.
 #define SERVO_DELAY { 300 }
 
-// Only power servos during movement, otherwise leave off to prevent jitter
-//#define DEACTIVATE_SERVOS_AFTER_MOVE
+    // Only power servos during movement, otherwise leave off to prevent jitter
+    //#define DEACTIVATE_SERVOS_AFTER_MOVE
 
-// Edit servo angles with M281 and save to EEPROM with M500
-//#define EDITABLE_SERVO_ANGLES
+    // Edit servo angles with M281 and save to EEPROM with M500
+    //#define EDITABLE_SERVO_ANGLES
