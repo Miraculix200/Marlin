@@ -3335,7 +3335,7 @@
 #endif
 
 #define MEATPACK                // Support for MeatPack G-code compression (https://github.com/scottmudge/OctoPrint-MeatPack)
-#define MEATPACK_LOOKUP_TABLE
+//#define MEATPACK_LOOKUP_TABLE
 
 #define GCODE_CASE_INSENSITIVE  // Accept G-code sent to the firmware in lowercase
 
