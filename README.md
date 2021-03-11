@@ -1,5 +1,9 @@
 # Marlin for Sapphire Pro
 
+## Meatpack
+
+This branch has Meatpack enabled. If you want to use Octoprint with it, you have to enable the Meatpack plugin
+
 ## With 4 x TMC2209 (UART), auto off heat sink fan and optical endstop on Z axis
 
 * Uses the most recent bugfixes and features of Marlin (branch bugfix-2.0.x) - use at your own risk
