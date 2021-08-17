@@ -32,7 +32,7 @@
 #define UBL_OK false
 #define UBL_ERR true
 
-enum MeshPointType : char { INVALID, REAL, SET_IN_BITMAP };
+enum MeshPointType : char { INVALID, REAL, SET_IN_BITMAP, CLOSEST };
 
 // External references
 
@@ -47,10 +47,10 @@ struct mesh_index_pair;
 
 typedef struct {
   bool      C_seen;
-  int8_t    V_verbosity,
+  int8_t    KLS_storage_slot;
+  uint8_t   R_repetition,
+            V_verbosity,
             P_phase,
-            R_repetition,
-            KLS_storage_slot,
             T_map_type;
   float     B_shim_thickness,
             C_constant;
@@ -98,7 +98,7 @@ public:
   static void report_state();
   static void save_ubl_active_state_and_disable();
   static void restore_ubl_active_state_and_leave();
-  static void display_map(const int) _O0;
+  static void display_map(const uint8_t) _O0;
   static mesh_index_pair find_closest_mesh_point_of_type(const MeshPointType, const xy_pos_t&, const bool=false, MeshFlags *done_flags=nullptr) _O0;
   static mesh_index_pair find_furthest_invalid_mesh_point() _O0;
   static void reset();
@@ -196,7 +196,7 @@ public:
   #ifdef UBL_Z_RAISE_WHEN_OFF_MESH
     #define _UBL_OUTER_Z_RAISE UBL_Z_RAISE_WHEN_OFF_MESH
   #else
-    #define _UBL_OUTER_Z_RAISE MFNAN
+    #define _UBL_OUTER_Z_RAISE NAN
   #endif
 
   /**
@@ -269,7 +269,7 @@ public:
     const float z2 = calc_z0(rx0, mesh_index_to_xpos(cx), z_values[cx][my], mesh_index_to_xpos(cx + 1), z_values[mx][my]);
     float z0 = calc_z0(ry0, mesh_index_to_ypos(cy), z1, mesh_index_to_ypos(cy + 1), z2);
 
-    if (ISNAN(z0)) { // if part of the Mesh is undefined, it will show up as MFNAN
+    if (isnan(z0)) { // if part of the Mesh is undefined, it will show up as NAN
       z0 = 0.0;      // in ubl.z_values[][] and propagate through the
                      // calculations. If our correction is NAN, we throw it out
                      // because part of the Mesh is undefined and we don't have the
@@ -301,7 +301,7 @@ public:
   #endif
 
   static inline bool mesh_is_valid() {
-    GRID_LOOP(x, y) if (ISNAN(z_values[x][y])) return false;
+    GRID_LOOP(x, y) if (isnan(z_values[x][y])) return false;
     return true;
   }
 

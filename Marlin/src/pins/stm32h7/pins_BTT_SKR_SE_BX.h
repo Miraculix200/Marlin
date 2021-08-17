@@ -207,19 +207,32 @@
   #define LCD_B4_PIN                        PI4
   #define LCD_B3_PIN                        PG11
 
+  // GT911 Capacitive Touch Sensor
+  #if ENABLED(TFT_TOUCH_DEVICE_GT911)
+    #define GT911_RST_PIN                   PE4
+    #define GT911_INT_PIN                   PE3
+    #define GT911_SW_I2C_SCL_PIN            PE2
+    #define GT911_SW_I2C_SDA_PIN            PE6
+  #endif
+
 #endif
 
-#define BTN_EN1                             PH6
-#define BTN_EN2                             PH7
-#define BTN_ENC                             PH8
+#if IS_NEWPANEL
+  #define BTN_EN1                           PH6
+  #define BTN_EN2                           PH7
+  #define BTN_ENC                           PH8
+#endif
 
+//
+// SD card
+//
 #ifndef SDCARD_CONNECTION
   #define SDCARD_CONNECTION              ONBOARD
 #endif
 
 #define SOFTWARE_SPI
 #define SDSS                                PA15
-#define SS_PIN                              SDSS
+#define SD_SS_PIN                           SDSS
 #define SD_SCK_PIN                          PC10
 #define SD_MISO_PIN                         PC11
 #define SD_MOSI_PIN                         PC12

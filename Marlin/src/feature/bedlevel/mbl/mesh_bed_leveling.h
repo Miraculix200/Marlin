@@ -97,16 +97,13 @@ public:
   static inline xy_int8_t probe_indexes(const xy_pos_t &xy) { return probe_indexes(xy.x, xy.y); }
 
   static float calc_z0(const_float_t a0, const_float_t a1, const_float_t z1, const_float_t a2, const_float_t z2) {
-    if (ISNAN(a0) || ISNAN(a1) || ISNAN(z1) || ISNAN(a2) || ISNAN(z2)) return MFNAN;
     const float delta_z = (z2 - z1) / (a2 - a1),
                 delta_a = a0 - a1;
     return z1 + delta_a * delta_z;
   }
 
   static float get_z(const xy_pos_t &pos
-    #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-      , const_float_t factor=1.0f
-    #endif
+    OPTARG(ENABLE_LEVELING_FADE_HEIGHT, const_float_t factor=1.0f)
   ) {
     #if DISABLED(ENABLE_LEVELING_FADE_HEIGHT)
       constexpr float factor = 1.0f;
@@ -118,8 +115,7 @@ public:
                 z2 = calc_z0(pos.x, x1, z_values[ind.x][ind.y+1], x2, z_values[ind.x+1][ind.y+1]),
                 zf = calc_z0(pos.y, y1, z1, y2, z2);
 
-
-    return ISNAN(zf) ? zf : z_offset + zf * factor;
+    return z_offset + zf * factor;
   }
 
   #if IS_CARTESIAN && DISABLED(SEGMENT_LEVELED_MOVES)
